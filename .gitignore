@@ -14,8 +14,7 @@
 # Byproducts
 
 /config.h
-/Makefile
-/src/Makefile
+Makefile
 .deps/
 
 # http://www.gnu.org/software/automake
