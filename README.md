@@ -4,4 +4,5 @@ Reads from STDIN and writes to AWS S3 or Glacier.
 
 ### TODO
 
-- Glacier support is work-in-progress.
+- Glacier deep archive support (when it's out)
+- Code refining & adding tests

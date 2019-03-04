@@ -10,7 +10,9 @@ typedef struct read_ctx {
 } read_ctx_t;
 
 static write_ctx_t *request_(const request_ctx_t *const ctx, CURL *const handle,
-                             char **addr_to_etag);
+                             char **addr_to_headervalue,
+                             size_t (*header_callback)(const char *, size_t,
+                                                       size_t, char **));
 static size_t get_curlopt_url(const request_ctx_t *const ctx,
                               uint8_t *const out);
 static char *get_header(const uint8_t *const key, const uint8_t *const value);
@@ -18,20 +20,21 @@ static size_t read_callback(char *const buffer, const size_t size,
                             const size_t n_items, read_ctx_t *payload);
 static size_t write_callback(const char *const buffer, const size_t size,
                              const size_t nmemb, write_ctx_t *write_ctx);
-static size_t header_callback(const char *const buffer, const size_t size,
-                              const size_t nitems, char **addr_to_etag);
 
 /**
  * Retry logic
  */
 write_ctx_t *request(const request_ctx_t *const ctx, CURL *const handle,
-                     char **addr_to_etag) {
+                     char **addr_to_headervalue,
+                     size_t (*header_callback)(const char *, size_t, size_t,
+                                               char **)) {
     write_ctx_t *recent_trial = NULL;
     for (size_t i = 0; i < NUM_RETRY; i++) {
         if (i != 0) {
             print_error("Retrying...");
         }
-        recent_trial = request_(ctx, handle, addr_to_etag);
+        recent_trial =
+            request_(ctx, handle, addr_to_headervalue, header_callback);
         if (recent_trial->curl_success &&
             !(recent_trial->response >= 500 && recent_trial->response <= 599)) {
             return recent_trial;
@@ -45,7 +48,9 @@ write_ctx_t *request(const request_ctx_t *const ctx, CURL *const handle,
  * Make a request according to the given request context.
  */
 static write_ctx_t *request_(const request_ctx_t *const ctx, CURL *const handle,
-                             char **addr_to_etag) {
+                             char **addr_to_headervalue,
+                             size_t (*header_callback)(const char *, size_t,
+                                                       size_t, char **)) {
     curl_easy_reset(handle);
     if (level_debug) {
         const CURLcode verbose_result =
@@ -123,9 +128,9 @@ static write_ctx_t *request_(const request_ctx_t *const ctx, CURL *const handle,
         exit_curl(writefunc_result);
     }
 
-    if (addr_to_etag) {
+    if (header_callback) {
         const CURLcode headerdata_result =
-            curl_easy_setopt(handle, CURLOPT_HEADERDATA, addr_to_etag);
+            curl_easy_setopt(handle, CURLOPT_HEADERDATA, addr_to_headervalue);
         if (headerdata_result != CURLE_OK) {
             exit_curl(headerdata_result);
         }
@@ -165,6 +170,16 @@ static write_ctx_t *request_(const request_ctx_t *const ctx, CURL *const handle,
         curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
     if (info_result != CURLE_OK) {
         exit_curl(info_result);
+    }
+    if (write_ctx->buffer != NULL) {
+        print_debug("===== BEGIN response =====");
+        if (level_debug) {
+            for (size_t i = 0; i < write_ctx->write_idx; i++) {
+                fputc(write_ctx->buffer[i], stderr);
+            }
+            fputc('\n', stderr);
+        }
+        print_debug("===== END response =====");
     }
     if (response_code >= 500 && response_code <= 599) {
         print_error("Response is 5xx");
@@ -264,72 +279,5 @@ static size_t write_callback(const char *const buffer, const size_t size,
 
     memcpy(write_ctx->buffer + write_ctx->write_idx, buffer, len);
     write_ctx->write_idx += len;
-    return len;
-}
-
-static size_t header_callback(const char *const buffer, const size_t size,
-                              const size_t nitems, char **addr_to_etag) {
-    static const char *const key_etag = "etag";
-    static const char *const key_ETAG = "ETAG";
-
-    const size_t len = size * nitems;
-    if (addr_to_etag == NULL) {
-        return len;
-    }
-
-    size_t i = 0;
-    for (; i < len && buffer[i] == ' '; i++)
-        ;
-    if (i == len) {
-        return len;
-    }
-    if (buffer[i] != key_etag[0] && buffer[i] != key_ETAG[0]) {
-        return len;
-    }
-    i++;
-    if (buffer[i] != key_etag[1] && buffer[i] != key_ETAG[1]) {
-        return len;
-    }
-    i++;
-    if (buffer[i] != key_etag[2] && buffer[i] != key_ETAG[2]) {
-        return len;
-    }
-    i++;
-    if (buffer[i] != key_etag[3] && buffer[i] != key_ETAG[3]) {
-        return len;
-    }
-    i++;
-    if (buffer[i] != ' ' && buffer[i] != ':') {
-        return len;
-    }
-    for (; i < len && buffer[i] == ' '; i++)
-        ;
-    if (i == len) {
-        return len;
-    }
-    if (buffer[i] != ':') {
-        return len;
-    }
-    i++;
-    for (; i < len && buffer[i] == ' '; i++)
-        ;
-    if (i == len) {
-        return len;
-    }
-
-    // Adding null byte is handled by calloc
-    // (len is always bigger than the length of ETag value)
-    char *etag = calloc(len, sizeof(char));
-    if (etag == NULL) {
-        exit_errno();
-    }
-    size_t etag_idx = 0;
-    for (; i < len; i++) {
-        if (buffer[i] < '!' || buffer[i] > '~') {
-            break;
-        }
-        etag[etag_idx++] = buffer[i];
-    }
-    *addr_to_etag = etag;
     return len;
 }

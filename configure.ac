@@ -8,7 +8,7 @@ AC_PROG_CC
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile src/Makefile m4/Makefile])
 
-AC_DEFINE([DEFAULT_CHUNK_SIZE], [209715200], [Default chunk size. Must be aligned to 1MiB.])
+AC_DEFINE([DEFAULT_CHUNK_SIZE], [268435456], [Default chunk size. Must be aligned to 1MiB, and 1MiB multiplied by a power of 2])
 AC_DEFINE([CURL_WRITE_BUFFER_SIZE], [4096], [curl write buffer size.])
 AC_DEFINE([NUM_RETRY], [5], [The number of re-trials for each request.])
 

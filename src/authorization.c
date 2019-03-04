@@ -174,14 +174,6 @@ static size_t string_to_sign(const request_ctx_t *const ctx,
             exit_errno();
         }
         canonical_request(ctx, cr);
-        print_debug("===== BEGIN canonical_request =====");
-        if (level_debug) {
-            for (size_t i = 0; i < cr_size; i++) {
-                fputc(cr[i], stderr);
-            }
-            fputc('\n', stderr);
-        }
-        print_debug("===== END canonical_request =====");
         uint8_t *const cr_md = sha256(cr, cr_size);
         out_idx += hex(cr_md, SHA256_BYTES, out + out_idx);
         free(cr);

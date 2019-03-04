@@ -87,6 +87,24 @@ int main(int argc, char *const argv[]) {
         }
     }
 
+    if (aws_service_str == NULL) {
+        fprintf(stderr, "%s: aws_service is not specified\n", argv[0]);
+        args_invalid = true;
+    } else if (strcmp(aws_service_str, AWS_S3) == 0) {
+        master_ctx.service = s3;
+    } else if (strcmp(aws_service_str, AWS_GLACIER) == 0) {
+        master_ctx.service = glacier;
+    } else {
+        fprintf(stderr, "%s: invalid aws_service: %s\n", argv[0],
+                aws_service_str);
+        args_invalid = true;
+    }
+    // since master_ctx.service is going to be used for later validation,
+    // terminate the program if we cannot get valid value for master_ctx.service
+    if (args_invalid) {
+        help(argv[0]);
+    }
+
     if (optind >= argc) {
         fprintf(stderr, "%s: bucket/valut name is required\n", argv[0]);
         args_invalid = true;
@@ -106,8 +124,11 @@ int main(int argc, char *const argv[]) {
     }
     optind++;
     if (optind >= argc) {
-        fprintf(stderr, "%s: object name is required\n", argv[0]);
-        args_invalid = true;
+        // at this point master_ctx should contain valid value
+        if (master_ctx.service == s3) {
+            fprintf(stderr, "%s: object name is required\n", argv[0]);
+            args_invalid = true;
+        }
     } else {
         master_ctx.object_name = argv[optind];
     }
@@ -126,18 +147,6 @@ int main(int argc, char *const argv[]) {
     }
     if (master_ctx.region == NULL) {
         fprintf(stderr, "%s: aws_region is not specified\n", argv[0]);
-        args_invalid = true;
-    }
-    if (aws_service_str == NULL) {
-        fprintf(stderr, "%s: aws_service is not specified\n", argv[0]);
-        args_invalid = true;
-    } else if (strcmp(aws_service_str, AWS_S3) == 0) {
-        master_ctx.service = s3;
-    } else if (strcmp(aws_service_str, AWS_GLACIER) == 0) {
-        master_ctx.service = glacier;
-    } else {
-        fprintf(stderr, "%s: invalid aws_service: %s\n", argv[0],
-                aws_service_str);
         args_invalid = true;
     }
     if (chunk_size_str != NULL) {
@@ -226,13 +235,16 @@ int main(int argc, char *const argv[]) {
 }
 
 static void help(const char *const argv0) {
-    fprintf(stderr, "Usage: %s [OPTION] BUCKET_NAME OBJECT_NAME\n\
+    fprintf(stderr, "\
+Usage: %s -s s3      [OPTION] BUCKET_NAME OBJECT_NAME\n\
+       %s -s glacier [OPTION] VAULT_NAME [ARCHIVE_DESCRIPTION]\n\
   -i id\t\tAWS access key id\n\
   -k secret\tPath to the file which stores AWS secret access key\n\
   -r region\tAWS region\n\
-  -s service\tAWS service to use: s3 or glacier\n\
   -c chunk_size\tThe size of payload to upload at once (in MiB)\n\
-  -v \t\tBe verbose\n",
-            argv0);
+  -v \t\tBe verbose\n\
+\n\
+Chunk size should be 1MiB multiplied by a power of 2.\n",
+            argv0, argv0);
     exit(EXIT_FAILURE);
 }

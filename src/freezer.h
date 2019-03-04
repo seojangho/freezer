@@ -122,11 +122,21 @@ size_t hex(const uint8_t *const in, const size_t in_size, uint8_t *const out);
 uint8_t *sha256(const uint8_t *const in, const size_t in_size);
 char *authorization_header(const request_ctx_t *const ctx);
 write_ctx_t *request(const request_ctx_t *const ctx, CURL *const handle,
-                     char **addr_to_etag);
+                     char **addr_to_headervalue,
+                     size_t (*header_callback)(const char *, size_t, size_t,
+                                               char **));
 void upload_s3(master_ctx_t *const ctx, CURL *const handle,
                uint8_t *const payload_buffer);
 void upload_glacier(master_ctx_t *const ctx, CURL *const handle,
                     uint8_t *const payload_buffer);
+size_t header_callback_etag(const char *const buffer, const size_t size,
+                            const size_t nitems, char **addr_to_headervalue);
+size_t header_callback_location(const char *const buffer, const size_t size,
+                                const size_t nitems,
+                                char **addr_to_headervalue);
+size_t header_callback_uploadid(const char *const buffer, const size_t size,
+                                const size_t nitems,
+                                char **addr_to_headervalue);
 
 extern bool level_debug;
 

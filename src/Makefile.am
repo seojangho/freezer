@@ -7,7 +7,7 @@ CFORMAT_FLAGS=-i -style="{BasedOnStyle: llvm, IndentWidth: 4, \
   KeepEmptyLinesAtTheStartOfBlocks: false}"
 
 bin_PROGRAMS = freezer
-freezer_SOURCES = freezer.h main.c authorization.c utils.c debug.c request.c upload.c
+freezer_SOURCES = freezer.h main.c authorization.c utils.c debug.c request.c upload.c header.c
 
 format: $(freezer_SOURCES)
 	$(CFORMAT) $(CFORMAT_FLAGS) $^
