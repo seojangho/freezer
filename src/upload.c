@@ -24,9 +24,9 @@ static request_ctx_t *s3_ctx_new(const master_ctx_t *const master_ctx,
 static void s3_request_ctx_free(request_ctx_t *const ctx);
 static uint8_t *s3_init(const master_ctx_t *const master_ctx,
                         CURL *const handle, uint8_t *const payload_buffer);
-static bool s3_upload(master_ctx_t *const master_ctx, CURL *const handle,
+static bool s3_upload(const master_ctx_t *const master_ctx, CURL *const handle,
                       uint8_t *const payload_buffer, char **addr_to_etag);
-static void s3_complete(master_ctx_t *const master_ctx, CURL *const handle,
+static void s3_complete(const master_ctx_t *const master_ctx, CURL *const handle,
                         uint8_t *const payload_buffer,
                         const struct etag *etags);
 
@@ -239,7 +239,7 @@ static uint8_t *s3_init(const master_ctx_t *const master_ctx,
     return upload_id;
 }
 
-static bool s3_upload(master_ctx_t *const master_ctx, CURL *const handle,
+static bool s3_upload(const master_ctx_t *const master_ctx, CURL *const handle,
                       uint8_t *const payload_buffer, char **addr_to_etag) {
     static const size_t num_params = 2;
     static const size_t num_headers = 9;
@@ -331,7 +331,7 @@ static bool s3_upload(master_ctx_t *const master_ctx, CURL *const handle,
     return to_continue;
 }
 
-static void s3_complete(master_ctx_t *const master_ctx, CURL *const handle,
+static void s3_complete(const master_ctx_t *const master_ctx, CURL *const handle,
                         uint8_t *const payload_buffer,
                         const struct etag *etags) {
     static const char *const chunk_small_message =
